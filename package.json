@@ -1,0 +1,60 @@
+{
+    "name": "@wallet-test-framework/glue-metamask-android",
+    "version": "0.1.0",
+    "description": "Glue between Wallet Test Framework and MetaMask Wallet (Android)",
+    "license": "MIT",
+    "type": "module",
+    "bin": "./dist/cli.js",
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "fmt": "prettier --write .",
+        "build": "node ./Build.js && tsc -d --emitDeclarationOnly",
+        "test": "prettier --check . && eslint . && npm run build"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/wallet-test-framework/glue-metamask-android.git"
+    },
+    "contributors": [
+        {
+            "name": "Nikki Gaudreau",
+            "url": "https://twitter.com/gaudren_",
+            "email": "nikki@binarycake.ca"
+        },
+        {
+            "name": "Sam Wilson",
+            "url": "https://twitter.com/_SamWilsn_",
+            "email": "sam@binarycake.ca"
+        }
+    ],
+    "bugs": {
+        "url": "https://github.com/wallet-test-framework/glue-metamask-android/issues"
+    },
+    "homepage": "https://wtf.allwallet.dev/",
+    "devDependencies": {
+        "@jgoz/esbuild-plugin-typecheck": "^4.0.1",
+        "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+        "@tsconfig/recommended": "^1.0.7",
+        "@types/node": "^20.6.1",
+        "@typescript-eslint/eslint-plugin": "8.6.0",
+        "@typescript-eslint/parser": "^8.6.0",
+        "esbuild": "0.23.1",
+        "eslint": "9.10.0",
+        "eslint-config-prettier": "^9.1.0",
+        "prettier": "3.3.3",
+        "typescript": "^5.6.2"
+    },
+    "dependencies": {
+        "@wallet-test-framework/glue": "^0.8.0",
+        "@wallet-test-framework/glue-ws": "../glue-ws",
+        "meow": "^13.2.0",
+        "rpc-websockets": "7.10.0",
+        "webdriverio": "^9.0.9"
+    }
+}
