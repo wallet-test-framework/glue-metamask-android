@@ -12,11 +12,9 @@ import {
     SignMessage,
     SignMessageEvent,
     SignTransaction,
-    SignTransactionEvent,
     SwitchEthereumChain,
 } from "@wallet-test-framework/glue";
 import process from "node:process";
-import { URL } from "node:url";
 import { Browser, remote } from "webdriverio";
 
 function delay(ms: number): Promise<void> {
@@ -134,21 +132,21 @@ class MetaMaskAndroidDriver {
     }
 
     public async unlockWithPassword(driver: Browser): Promise<void> {
-        const passwordTxt = await driver.$(
+        const passwordTxt = driver.$(
             '//android.widget.EditText[@resource-id="login-password-input"]',
         );
         let retries = 2;
         let exception = null;
 
         while (retries) {
-            const appState: number = await driver.executeScript(
+            const appState: unknown = await driver.executeScript(
                 "mobile: queryAppState",
                 [{ appId: "io.metamask" }],
             );
 
             if (4 !== appState) {
                 // The app is not in the foreground.
-                this.activateApp(driver);
+                await this.activateApp(driver);
             }
 
             try {
@@ -167,10 +165,14 @@ class MetaMaskAndroidDriver {
         }
 
         if (exception) {
-            throw exception;
+            if (exception instanceof Error) {
+                throw exception;
+            } else {
+                throw new Error("Unable to unlock");
+            }
         }
 
-        const unlockBtn = await driver.$(
+        const unlockBtn = driver.$(
             '//android.widget.Button[@content-desc="UNLOCK"]',
         );
 
@@ -182,7 +184,7 @@ class MetaMaskAndroidDriver {
     private async emitRequestAccounts(driver: Browser): Promise<Event> {
         logger.debug("emitting requestaccounts");
 
-        const editBtn = await driver.$(
+        const editBtn = driver.$(
             '(//android.widget.TextView[@text="Edit"])[1]',
         );
         await editBtn.click();
@@ -190,7 +192,7 @@ class MetaMaskAndroidDriver {
         // XXX: MetaMask doesn't display the full address anywhere in this
         //      dialog, so we check for the address the seed phrase would
         //      create and return that.
-        const account = await driver.$(
+        const account = driver.$(
             '//android.widget.TextView[@text="0xb7B4...C8Cf"]',
         );
 
@@ -198,7 +200,7 @@ class MetaMaskAndroidDriver {
             throw new Error("couldn't find account in request accounts");
         }
 
-        const backBtn = await driver.$(
+        const backBtn = driver.$(
             '//android.view.ViewGroup[@resource-id="sheet-header-back-button"]',
         );
         await backBtn.click();
@@ -233,7 +235,7 @@ class MetaMaskAndroidDriver {
             await driver
                 .$('//android.view.ViewGroup[@content-desc="\uF3CF"]')
                 .click();
-        } catch (_) {
+        } catch (_e) {
             data = "0x";
         }
 
@@ -284,25 +286,6 @@ class MetaMaskAndroidDriver {
         return { uuid };
     }
 
-    private async emitSignTransaction(
-        driver: Browser,
-        handle: string,
-    ): Promise<void> {
-        logger.debug("emitting signtransaction");
-
-        throw new Error("emitSignTransaction: not implemented");
-
-        this.glue.emit(
-            "signtransaction",
-            new SignTransactionEvent(handle, {
-                from: "TODO",
-                to: "TODO",
-                data: "",
-                value: "TODO",
-            }),
-        );
-    }
-
     private async emitSignMessage(driver: Browser): Promise<Event> {
         logger.debug("emitting signmessage");
 
@@ -332,7 +315,7 @@ class MetaMaskAndroidDriver {
     }
 
     private async isSendTransactionModal(driver: Browser): Promise<boolean> {
-        const pill = await driver.$(
+        const pill = driver.$(
             '//android.view.ViewGroup[@resource-id="APPROVAL_TAG_URL_ORIGIN_PILL"]',
         );
         const pillExists = pill.isExisting();
@@ -345,7 +328,7 @@ class MetaMaskAndroidDriver {
     }
 
     private async isConnectAccountModal(driver: Browser): Promise<boolean> {
-        const connectAccountModal = await driver.$(
+        const connectAccountModal = driver.$(
             '//android.view.ViewGroup[@resource-id="permission-network-permissions-container"]',
         );
 
@@ -398,7 +381,7 @@ class MetaMaskAndroidDriver {
                     continue;
                 }
 
-                const appState: number = await this.driver
+                const appState: unknown = await this.driver
                     .unsafe()
                     .executeScript("mobile: queryAppState", [
                         { appId: "io.metamask" },
@@ -454,91 +437,98 @@ class MetaMaskAndroidDriver {
         await this.driver.lock(async (driver) => {
             // Get through the intro screen.
             try {
-                const getStartedBtn = await driver.$(
+                const getStartedBtn = driver.$(
                     '//android.widget.Button[@content-desc="Get started"]',
                 );
                 await getStartedBtn.waitForExist();
                 await getStartedBtn.click();
-            } catch (e) {}
+            } catch (_) {
+                // Sometimes the "Get Started" button isn't there!
+            }
 
             // Wait for and click the Import Wallet button.
-            const importWalletBtn = await driver.$(
+            const importWalletBtn = driver.$(
                 '//android.widget.Button[@content-desc="wallet-setup-screen-import-from-seed-button-id"]',
             );
             await importWalletBtn.waitForExist();
             await importWalletBtn.click();
 
             // Deny Metrics
-            const denyBtn = await driver.$(
+            const denyBtn = driver.$(
                 '//android.widget.Button[@content-desc="No thanks"]',
             );
             await denyBtn.click();
 
             try {
-                const scrollBtn = await driver.$(
+                const scrollBtn = driver.$(
                     '//android.view.ViewGroup[@resource-id="terms-of-use-scroll-end-arrow-button-id"]',
                 );
                 await scrollBtn.click();
 
-                const termsBtn = await driver.$(
+                const termsBtn = driver.$(
                     '//android.view.ViewGroup[@resource-id="terms-of-use-checkbox"]',
                 );
                 await termsBtn.click();
 
-                const agreeBtn = await driver.$(
+                const agreeBtn = driver.$(
                     '//android.widget.Button[@content-desc="Accept"]',
                 );
                 await agreeBtn.waitForEnabled();
                 await agreeBtn.click();
-            } catch (e) {}
+            } catch (_) {
+                // If MetaMask isn't completely reset, the terms don't pop up.
+            }
 
             // Enter the seed phrase.
-            const showBtn = await driver.$(
+            const showBtn = driver.$(
                 '(//android.view.ViewGroup[@content-desc="Show"])[1]',
             );
             await showBtn.click();
 
-            const seedTextView = await driver.$(
+            const seedTextView = driver.$(
                 '//android.widget.EditText[@text="Enter your Secret Recovery Phrase"]',
             );
             await seedTextView.clearValue();
             await seedTextView.addValue(MetaMaskAndroidDriver.SEED);
 
-            const newPw = await driver.$(
+            const newPw = driver.$(
                 '//android.widget.EditText[@resource-id="create-password-first-input-field"]',
             );
             await newPw.clearValue();
             await newPw.addValue(MetaMaskAndroidDriver.PASSWORD);
 
-            const confirmPw = await driver.$(
+            const confirmPw = driver.$(
                 '//android.widget.EditText[@resource-id="create-password-second-input-field"]',
             );
             await confirmPw.clearValue();
             await confirmPw.addValue(MetaMaskAndroidDriver.PASSWORD);
 
-            const fingerprintSwitch = await driver.$(
+            const fingerprintSwitch = driver.$(
                 //'//android.widget.Switch[@resource-id="login-with-biometrics-switch"]',
                 "//android.widget.Switch",
             );
             await fingerprintSwitch.click();
 
-            const importBtn = await driver.$(
+            const importBtn = driver.$(
                 '//android.widget.Button[@content-desc="import-from-seed-screen-submit-button-id"]',
             );
             await importBtn.click();
 
-            const doneBtn = await driver.$(
+            const doneBtn = driver.$(
                 '//android.widget.Button[@content-desc="Done"]',
             );
             await doneBtn.click();
 
-            const secBtn = await driver.$(
+            const secBtn = driver.$(
                 '//android.widget.Button[@content-desc="No thanks"]',
             );
             while (await secBtn.isExisting()) {
                 try {
                     await secBtn.click();
-                } catch (_) {}
+                } catch (_) {
+                    // The button can disappear between the `isExisting` and
+                    // the `click`.
+                }
             }
         });
     }
@@ -590,18 +580,18 @@ export class MetaMaskAndroidGlue extends Glue {
                 },
             ]);
 
-            const wcBtn = await driver.$(
+            const wcBtn = driver.$(
                 '//android.widget.Button[@resource-id="walletConnect"]',
             );
             await wcBtn.click();
 
-            const allWalletsBtn = await driver.$(
+            const allWalletsBtn = driver.$(
                 '//android.widget.Button[@text="Select Wallet"]',
             );
             await allWalletsBtn.click();
 
             // TODO: This works on my phone because I have two wallets. Need to fix this for phones with only one wallet.
-            const selectWallet = await driver.$(
+            const selectWallet = driver.$(
                 '//android.widget.TextView[@text="MetaMask"]',
             );
             await selectWallet.click();
@@ -609,7 +599,7 @@ export class MetaMaskAndroidGlue extends Glue {
     }
 
     async openNetworksMenu(driver: Browser): Promise<void> {
-        const openNetBtn = await driver.$(
+        const openNetBtn = driver.$(
             '//android.view.ViewGroup[@resource-id="open-networks-button"]',
         );
         await openNetBtn.click();
@@ -622,17 +612,17 @@ export class MetaMaskAndroidGlue extends Glue {
             await cb.unlockWithPassword(driver);
             await this.openNetworksMenu(driver);
 
-            const addBtn = await driver.$(
+            const addBtn = driver.$(
                 '//android.widget.Button[@content-desc="Add a custom network"]',
             );
             await addBtn.click();
 
-            const nameEdit = await driver.$(
+            const nameEdit = driver.$(
                 '//android.widget.EditText[@resource-id="input-network-name"]',
             );
             await nameEdit.addValue(chainName);
 
-            const chainIdEdit = await driver.$(
+            const chainIdEdit = driver.$(
                 '//android.widget.EditText[@resource-id="input-chain-id"]',
             );
             while (true) {
@@ -645,70 +635,73 @@ export class MetaMaskAndroidGlue extends Glue {
                 }
             }
 
-            const rpcDrop = await driver.$(
+            const rpcDrop = driver.$(
                 '//android.view.ViewGroup[@resource-id="drop-down-rpc-menu"]',
             );
             await rpcDrop.click();
 
-            const addRpcBtn = await driver.$(
+            const addRpcBtn = driver.$(
                 '//android.widget.Button[@content-desc="Add RPC URL"]',
             );
             await addRpcBtn.click();
 
-            const urlEdit = await driver.$(
+            const urlEdit = driver.$(
                 '//android.widget.EditText[@resource-id="input-rpc-url"]',
             );
             await urlEdit.addValue(action.rpcUrl);
 
-            const confirmRpcBtn = await driver.$(
+            const confirmRpcBtn = driver.$(
                 '//android.widget.Button[@resource-id="add-rpc-button"]',
             );
             await confirmRpcBtn.click();
 
-            const symbolEdit = await driver.$(
+            const symbolEdit = driver.$(
                 '//android.widget.EditText[@resource-id="input-network-symbol"]',
             );
             await symbolEdit.addValue("TETH");
 
-            const explorerDrop = await driver.$(
+            const explorerDrop = driver.$(
                 '//android.view.ViewGroup[@resource-id="drop-down-block-explorer-menu"]',
             );
             await explorerDrop.click();
 
-            const addExplorerBtn = await driver.$(
+            const addExplorerBtn = driver.$(
                 '//android.widget.Button[@content-desc="Add Block Explorer URL"]',
             );
             await addExplorerBtn.click();
 
-            const explorerEdit = await driver.$(
+            const explorerEdit = driver.$(
                 '//android.widget.EditText[@resource-id="block-explorer"]',
             );
             await explorerEdit.addValue("https://example.com/");
 
-            const confirmExplorerBtn = await driver.$(
+            const confirmExplorerBtn = driver.$(
                 '//android.widget.Button[@resource-id="add-block-explorer-button"]',
             );
             await confirmExplorerBtn.click();
 
-            const confirmNetBtn = await driver.$(
+            const confirmNetBtn = driver.$(
                 '//android.widget.Button[@resource-id="add-custom-network-button"]',
             );
             while (await confirmNetBtn.isExisting()) {
                 try {
                     await confirmNetBtn.click();
-                } catch (_) {}
+                } catch (_) {
+                    // The button can disappear between the `isExisting` and
+                    // the `click`.
+                }
             }
 
             await cb.unlockWithPassword(driver);
 
             await this.openNetworksMenu(driver);
 
-            const testChainMenu = await driver.$(
+            const testChainMenu = driver.$(
                 `//android.widget.TextView[@text="${chainName}"]/ancestor::*[@resource-id="select-with-menu"]`,
             );
             await testChainMenu.click();
 
-            const eduBtn = await driver.$(
+            const eduBtn = driver.$(
                 '//android.widget.Button[@content-desc="network-education-modal-close-button"]',
             );
             await eduBtn.click();
@@ -730,8 +723,7 @@ export class MetaMaskAndroidGlue extends Glue {
                 throw new Error("requestAccounts: not implemented");
             }
 
-            let btn = await driver.$(btnXpath);
-            await btn.click();
+            await driver.$(btnXpath).click();
         }, action.id);
     }
 
@@ -772,22 +764,16 @@ export class MetaMaskAndroidGlue extends Glue {
         }, action.id);
     }
 
-    override async signTransaction(action: SignTransaction): Promise<void> {
-        const cb = await this.driver;
-        await cb.lock(async (driver) => {
-            throw new Error("signTransaction: not implemented");
-        }, action.id);
+    override signTransaction(_action: SignTransaction): Promise<void> {
+        return Promise.reject(new Error("signTransaction: not implemented"));
     }
 
-    // TODO: Remove eslint comment after implementing.
-    // eslint-disable-next-line @typescript-eslint/require-await
-    override async switchEthereumChain(
-        _action: SwitchEthereumChain,
-    ): Promise<void> {
-        throw new Error("cb - switchEthereumChain not implemented");
+    override switchEthereumChain(_action: SwitchEthereumChain): Promise<void> {
+        return Promise.reject(
+            new Error("switchEthereumChain: not implemented"),
+        );
     }
 
-    // eslint-disable-next-line @typescript-eslint/require-await
     override async report(action: Report): Promise<void> {
         await (await this.driver).stop();
         this.resolveReport(action);

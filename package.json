@@ -38,23 +38,25 @@
     },
     "homepage": "https://wtf.allwallet.dev/",
     "devDependencies": {
-        "@jgoz/esbuild-plugin-typecheck": "^4.0.1",
-        "@trivago/prettier-plugin-sort-imports": "^4.3.0",
-        "@tsconfig/recommended": "^1.0.7",
-        "@types/node": "^20.6.1",
-        "@typescript-eslint/eslint-plugin": "8.6.0",
-        "@typescript-eslint/parser": "^8.6.0",
-        "esbuild": "0.23.1",
-        "eslint": "9.10.0",
-        "eslint-config-prettier": "^9.1.0",
-        "prettier": "3.3.3",
-        "typescript": "^5.6.2"
+        "@eslint/eslintrc": "^3.2.0",
+        "@eslint/js": "^9.18.0",
+        "@jgoz/esbuild-plugin-typecheck": "^4.0.2",
+        "@trivago/prettier-plugin-sort-imports": "^5.2.1",
+        "@tsconfig/recommended": "^1.0.8",
+        "@types/node": "^22.10.10",
+        "@typescript-eslint/eslint-plugin": "8.21.0",
+        "@typescript-eslint/parser": "^8.21.0",
+        "esbuild": "0.24.2",
+        "eslint": "9.18.0",
+        "eslint-config-prettier": "^10.0.1",
+        "prettier": "3.4.2",
+        "typescript": "^5.7.3"
     },
     "dependencies": {
         "@wallet-test-framework/glue": "^0.8.0",
         "@wallet-test-framework/glue-ws": "../glue-ws",
         "meow": "^13.2.0",
-        "rpc-websockets": "7.10.0",
-        "webdriverio": "^9.0.9"
+        "rpc-websockets": "9.0.4",
+        "webdriverio": "^9.6.4"
     }
 }
